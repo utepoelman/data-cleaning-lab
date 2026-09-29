@@ -20,6 +20,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
+    <!-- Header & Dashboard Bar -->
     <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-20 shadow-md">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center space-x-3">
@@ -54,15 +55,15 @@
 
             <!-- Action Controls -->
             <div class="flex items-center space-x-2">
-                <button id="btn-generate" onclick="generateNewDataset()" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 border border-slate-600 shadow-sm">
+                <button id="btn-generate" onclick="generateNewDataset()" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 border border-slate-600 shadow-sm active:scale-95">
                     <i class="fa-solid fa-rotate"></i>
                     <span>New Dataset</span>
                 </button>
-                <button id="btn-check" onclick="checkData()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/30">
+                <button id="btn-check" onclick="checkData()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/30 active:scale-95">
                     <i class="fa-solid fa-check"></i>
                     <span>Check Data</span>
                 </button>
-                <button onclick="exportCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-emerald-600/30">
+                <button onclick="exportCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-emerald-600/30 active:scale-95">
                     <i class="fa-solid fa-file-csv"></i>
                     <span>Export CSV</span>
                 </button>
@@ -78,7 +79,7 @@
                 <h2 class="font-bold text-slate-200 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-blue-400"></i> Standardisation Rules
                 </h2>
-                <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">NZ STD v2.2</span>
+                <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">NZ STD v2.3</span>
             </div>
 
             <div class="space-y-3 text-xs custom-scrollbar overflow-y-auto max-h-[calc(100vh-220px)] pr-1">
@@ -140,7 +141,7 @@
                     <span id="row-count-badge" class="bg-slate-700 px-2 py-0.5 rounded text-slate-400 font-mono text-[11px]">10 Rows</span>
                 </div>
                 <div class="flex items-center space-x-2 text-[11px] text-slate-400">
-                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span> Initial
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-500"></span> Unchecked
                     <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 ml-2"></span> Valid
                     <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 ml-2"></span> Invalid
                 </div>
@@ -242,87 +243,106 @@
         let initialIssueMap = []; // Tracks boolean matrix of initially faulty cells
         let totalInitialIssuesCount = 0;
         let dataCheckPerformed = false;
+        let caseCounter = 101;
 
-        // Generate synthetic messy dataset with random variations
+        // Dynamic helper pick function
+        function getRandomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // Expanded pools for truly dynamic dataset generation
+        const poolClassCodes = [
+            { raw: "9tai2", clean: "9TAI2", noisy: true },
+            { raw: "9TAI", clean: "", noisy: true }, // Incomplete -> delete
+            { raw: "9TAK1", clean: "9TAK1", noisy: false },
+            { raw: "9mat1", clean: "9MAT1", noisy: true },
+            { raw: "9TEA", clean: "", noisy: true }, // Incomplete -> delete
+            { raw: "9TEA2", clean: "9TEA2", noisy: false },
+            { raw: "9mat2", clean: "9MAT2", noisy: true },
+            { raw: "9MAT", clean: "", noisy: true }, // Incomplete -> delete
+            { raw: "9TAK2", clean: "9TAK2", noisy: false },
+            { raw: "9tai1", clean: "9TAI1", noisy: true },
+            { raw: "9tak1", clean: "9TAK1", noisy: true },
+            { raw: "9TEA1", clean: "9TEA1", noisy: false },
+            { raw: "9TAK", clean: "", noisy: true } // Incomplete -> delete
+        ];
+
+        const poolHeights = [
+            { raw: "1.62m", clean: "162", noisy: true },
+            { raw: "158 cm", clean: "158", noisy: true },
+            { raw: "5ft 4in", clean: "163", noisy: true },
+            { raw: "165", clean: "165", noisy: false },
+            { raw: "1.70 m", clean: "170", noisy: true },
+            { raw: "154 cm", clean: "154", noisy: true },
+            { raw: "5' 3\"", clean: "160", noisy: true },
+            { raw: "1.59m", clean: "159", noisy: true },
+            { raw: "168 cm", clean: "168", noisy: true },
+            { raw: "161", clean: "161", noisy: false },
+            { raw: "1.75m", clean: "175", noisy: true },
+            { raw: "5' 8\"", clean: "173", noisy: true },
+            { raw: "172", clean: "172", noisy: false }
+        ];
+
+        const poolHandspans = [
+            { raw: "19.5 cm", clean: "19.5", noisy: true },
+            { raw: "195mm", clean: "19.5", noisy: true },
+            { raw: "21", clean: "21", noisy: false },
+            { raw: "18.5", clean: "18.5", noisy: false },
+            { raw: "205 mm", clean: "20.5", noisy: true },
+            { raw: "22 cm", clean: "22", noisy: true },
+            { raw: "190mm", clean: "19", noisy: true },
+            { raw: "20.0", clean: "20", noisy: false },
+            { raw: "21.5 cm", clean: "21.5", noisy: true },
+            { raw: "185mm", clean: "18.5", noisy: true },
+            { raw: "20 cm", clean: "20", noisy: true },
+            { raw: "17.5", clean: "17.5", noisy: false }
+        ];
+
+        const poolSiblings = [
+            { raw: "2", clean: "2", noisy: false },
+            { raw: "none", clean: "0", noisy: true },
+            { raw: "-", clean: "0", noisy: true },
+            { raw: "1", clean: "1", noisy: false },
+            { raw: "3", clean: "3", noisy: false },
+            { raw: "zero", clean: "0", noisy: true },
+            { raw: "2", clean: "2", noisy: false },
+            { raw: "0", clean: "0", noisy: false },
+            { raw: "4", clean: "4", noisy: false },
+            { raw: "1", clean: "1", noisy: false },
+            { raw: "None", clean: "0", noisy: true },
+            { raw: "5", clean: "5", noisy: false }
+        ];
+
+        const poolBrokenBones = [
+            { raw: "2", clean: "Yes", noisy: true },
+            { raw: "0", clean: "No", noisy: true },
+            { raw: "yes", clean: "Yes", noisy: true },
+            { raw: "No", clean: "No", noisy: false },
+            { raw: "1", clean: "Yes", noisy: true },
+            { raw: "NO", clean: "No", noisy: true },
+            { raw: "3", clean: "Yes", noisy: true },
+            { raw: "no", clean: "No", noisy: true },
+            { raw: "Yes", clean: "Yes", noisy: false },
+            { raw: "0", clean: "No", noisy: true },
+            { raw: "YES", clean: "Yes", noisy: true },
+            { raw: "4", clean: "Yes", noisy: true }
+        ];
+
+        // Fully regenerated dataset function
         function generateNewDataset() {
             dataCheckPerformed = false;
-
-            const poolClassCodes = [
-                { raw: "9tai2", clean: "9TAI2", noisy: true },
-                { raw: "9TAI", clean: "", noisy: true }, // Incomplete -> delete
-                { raw: "9TAK1", clean: "9TAK1", noisy: false },
-                { raw: "9mat1", clean: "9MAT1", noisy: true },
-                { raw: "9TEA", clean: "", noisy: true }, // Incomplete -> delete
-                { raw: "9TEA2", clean: "9TEA2", noisy: false },
-                { raw: "9mat2", clean: "9MAT2", noisy: true },
-                { raw: "9MAT", clean: "", noisy: true }, // Incomplete -> delete
-                { raw: "9TAK2", clean: "9TAK2", noisy: false },
-                { raw: "9tai1", clean: "9TAI1", noisy: true }
-            ];
-
-            const poolHeights = [
-                { raw: "1.62m", clean: "162", noisy: true },
-                { raw: "158 cm", clean: "158", noisy: true },
-                { raw: "5ft 4in", clean: "163", noisy: true },
-                { raw: "165", clean: "165", noisy: false },
-                { raw: "1.70 m", clean: "170", noisy: true },
-                { raw: "154 cm", clean: "154", noisy: true },
-                { raw: "5' 3\"", clean: "160", noisy: true },
-                { raw: "1.59m", clean: "159", noisy: true },
-                { raw: "168 cm", clean: "168", noisy: true },
-                { raw: "161", clean: "161", noisy: false }
-            ];
-
-            const poolHandspans = [
-                { raw: "19.5 cm", clean: "19.5", noisy: true },
-                { raw: "195mm", clean: "19.5", noisy: true },
-                { raw: "21", clean: "21", noisy: false },
-                { raw: "18.5", clean: "18.5", noisy: false },
-                { raw: "205 mm", clean: "20.5", noisy: true },
-                { raw: "22 cm", clean: "22", noisy: true },
-                { raw: "190mm", clean: "19", noisy: true },
-                { raw: "20.0", clean: "20", noisy: false },
-                { raw: "21.5 cm", clean: "21.5", noisy: true },
-                { raw: "185mm", clean: "18.5", noisy: true }
-            ];
-
-            const poolSiblings = [
-                { raw: "2", clean: "2", noisy: false },
-                { raw: "none", clean: "0", noisy: true },
-                { raw: "-", clean: "0", noisy: true },
-                { raw: "1", clean: "1", noisy: false },
-                { raw: "3", clean: "3", noisy: false },
-                { raw: "zero", clean: "0", noisy: true },
-                { raw: "2", clean: "2", noisy: false },
-                { raw: "0", clean: "0", noisy: false },
-                { raw: "4", clean: "4", noisy: false },
-                { raw: "1", clean: "1", noisy: false }
-            ];
-
-            const poolBrokenBones = [
-                { raw: "2", clean: "Yes", noisy: true },
-                { raw: "0", clean: "No", noisy: true },
-                { raw: "yes", clean: "Yes", noisy: true },
-                { raw: "No", clean: "No", noisy: false },
-                { raw: "1", clean: "Yes", noisy: true },
-                { raw: "NO", clean: "No", noisy: true },
-                { raw: "3", clean: "Yes", noisy: true },
-                { raw: "no", clean: "No", noisy: true },
-                { raw: "Yes", clean: "Yes", noisy: false },
-                { raw: "0", clean: "No", noisy: true }
-            ];
-
             currentDataset = [];
             initialIssueMap = [];
             totalInitialIssuesCount = 0;
 
+            // Generate 10 randomized rows
             for (let i = 0; i < 10; i++) {
-                const idStr = `CASE-${101 + i}`;
-                const c = poolClassCodes[i];
-                const h = poolHeights[i];
-                const hs = poolHandspans[i];
-                const s = poolSiblings[i];
-                const bb = poolBrokenBones[i];
+                const idStr = `CASE-${caseCounter++}`;
+                const c = getRandomItem(poolClassCodes);
+                const h = getRandomItem(poolHeights);
+                const hs = getRandomItem(poolHandspans);
+                const s = getRandomItem(poolSiblings);
+                const bb = getRandomItem(poolBrokenBones);
 
                 currentDataset.push({
                     id: idStr,
@@ -353,10 +373,10 @@
 
             renderTable();
             updateStats();
-            document.getElementById('status-message').innerText = "New noisy dataset loaded. Direct edit cells to clean values according to NZ standardisation rules.";
+            document.getElementById('status-message').innerHTML = "New dataset generated with fresh entries! Edit cells directly to clean values and click <strong>Check Data</strong>.";
         }
 
-        // Render table rows
+        // Render table rows and reset element styles
         function renderTable() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
@@ -369,24 +389,24 @@
                     <td class="py-2.5 px-4 text-center font-mono text-slate-500 border-r border-slate-700/50">${rowIndex + 1}</td>
                     <td class="py-2.5 px-3 border-r border-slate-700/50 text-slate-400 font-semibold">${row.id}</td>
                     <td class="py-2.5 px-2 border-r border-slate-700/50">
-                        <input type="text" value="${row.classCode}" onchange="updateCell(${rowIndex}, 'classCode', this.value)" 
-                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900" placeholder="[Clear if missing]">
+                        <input type="text" value="${row.classCode}" oninput="updateCell(${rowIndex}, 'classCode', this.value)" 
+                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900 transition-colors" placeholder="[Clear if missing]">
                     </td>
                     <td class="py-2.5 px-2 border-r border-slate-700/50">
-                        <input type="text" value="${row.height}" onchange="updateCell(${rowIndex}, 'height', this.value)" 
-                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900">
+                        <input type="text" value="${row.height}" oninput="updateCell(${rowIndex}, 'height', this.value)" 
+                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900 transition-colors">
                     </td>
                     <td class="py-2.5 px-2 border-r border-slate-700/50">
-                        <input type="text" value="${row.handspan}" onchange="updateCell(${rowIndex}, 'handspan', this.value)" 
-                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900">
+                        <input type="text" value="${row.handspan}" oninput="updateCell(${rowIndex}, 'handspan', this.value)" 
+                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900 transition-colors">
                     </td>
                     <td class="py-2.5 px-2 border-r border-slate-700/50">
-                        <input type="text" value="${row.siblings}" onchange="updateCell(${rowIndex}, 'siblings', this.value)" 
-                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900">
+                        <input type="text" value="${row.siblings}" oninput="updateCell(${rowIndex}, 'siblings', this.value)" 
+                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900 transition-colors">
                     </td>
                     <td class="py-2.5 px-2">
-                        <input type="text" value="${row.brokenBone}" onchange="updateCell(${rowIndex}, 'brokenBone', this.value)" 
-                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900">
+                        <input type="text" value="${row.brokenBone}" oninput="updateCell(${rowIndex}, 'brokenBone', this.value)" 
+                            class="cell-input w-full bg-slate-900/40 border border-slate-700/70 rounded px-2 py-1 text-slate-200 outline-none focus:border-blue-500 focus:bg-slate-900 transition-colors">
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -506,7 +526,7 @@
             }
         }
 
-        // Get expected clean target value
+        // Target clean values logic
         function getTargetCleanedValue(field, rawVal) {
             let v = rawVal.trim();
 
